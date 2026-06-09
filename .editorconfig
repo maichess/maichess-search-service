@@ -1,0 +1,166 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+# --------------------------------------------------------------------------
+# Language conventions
+# --------------------------------------------------------------------------
+dotnet_style_qualification_for_field = false:error
+dotnet_style_qualification_for_property = false:error
+dotnet_style_qualification_for_method = false:error
+dotnet_style_qualification_for_event = false:error
+
+dotnet_style_predefined_type_for_locals_parameters_members = true:error
+dotnet_style_predefined_type_for_member_access = true:error
+
+dotnet_style_object_initializer = true:warning
+dotnet_style_collection_initializer = true:warning
+dotnet_style_prefer_auto_properties = true:error
+dotnet_style_explicit_tuple_names = true:error
+dotnet_style_prefer_inferred_tuple_names = true:warning
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:warning
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:error
+dotnet_style_prefer_conditional_expression_over_assignment = true:warning
+dotnet_style_prefer_conditional_expression_over_return = true:warning
+dotnet_style_coalesce_expression = true:error
+dotnet_style_null_propagation = true:error
+
+# --------------------------------------------------------------------------
+# C# style
+# --------------------------------------------------------------------------
+csharp_style_var_for_built_in_types = false:error
+csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_elsewhere = false:warning
+
+csharp_style_expression_bodied_methods = when_on_single_line:warning
+csharp_style_expression_bodied_constructors = false:error
+csharp_style_expression_bodied_properties = when_on_single_line:warning
+csharp_style_expression_bodied_accessors = when_on_single_line:warning
+
+csharp_style_pattern_matching_over_is_with_cast_check = true:error
+csharp_style_pattern_matching_over_as_with_null_check = true:error
+csharp_style_inlined_variable_declaration = true:error
+csharp_style_throw_expression = true:warning
+csharp_style_conditional_delegate_call = true:error
+csharp_prefer_braces = true:error
+csharp_style_namespace_declarations = file_scoped:error
+
+# --------------------------------------------------------------------------
+# Naming conventions
+# --------------------------------------------------------------------------
+dotnet_naming_rule.interfaces_must_start_with_I.symbols = interface_symbols
+dotnet_naming_rule.interfaces_must_start_with_I.style = prefix_I_style
+dotnet_naming_rule.interfaces_must_start_with_I.severity = error
+
+dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+dotnet_naming_symbols.interface_symbols.applicable_accessibilities = *
+
+dotnet_naming_style.prefix_I_style.required_prefix = I
+dotnet_naming_style.prefix_I_style.capitalization = pascal_case
+
+dotnet_naming_rule.public_members_pascal.symbols = public_member_symbols
+dotnet_naming_rule.public_members_pascal.style = pascal_style
+dotnet_naming_rule.public_members_pascal.severity = error
+
+dotnet_naming_symbols.public_member_symbols.applicable_kinds = property,method,field,event,delegate
+dotnet_naming_symbols.public_member_symbols.applicable_accessibilities = public,internal,protected,protected_internal
+
+dotnet_naming_style.pascal_style.capitalization = pascal_case
+
+# --------------------------------------------------------------------------
+# Formatting
+# --------------------------------------------------------------------------
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_members_in_object_initializers = true
+csharp_new_line_before_members_in_anonymous_types = true
+
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_indent_labels = flush_left
+
+csharp_space_after_cast = false
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+csharp_space_between_method_call_parameter_list_parentheses = false
+csharp_space_before_colon_in_inheritance_clause = true
+csharp_space_after_colon_in_inheritance_clause = true
+csharp_space_around_binary_operators = before_and_after
+
+csharp_preserve_single_line_statements = false
+csharp_preserve_single_line_blocks = true
+
+# --------------------------------------------------------------------------
+# .NET analyzer rule overrides
+# --------------------------------------------------------------------------
+
+# CA1062: Validate arguments — not needed with nullable enabled
+dotnet_diagnostic.CA1062.severity = none
+
+# CA1303: Do not pass literals as localized parameters — not a localized app
+dotnet_diagnostic.CA1303.severity = none
+
+# CA1812: Internal class never instantiated — false positive for DI-registered types
+dotnet_diagnostic.CA1812.severity = none
+
+# CA1848: Use LoggerMessage delegates — too strict for a small service
+dotnet_diagnostic.CA1848.severity = suggestion
+
+# CA2007: ConfigureAwait — no-op in ASP.NET Core (no SynchronizationContext)
+dotnet_diagnostic.CA2007.severity = none
+
+# CA5394: System.Random is fine here — tournament seeding and color choices are
+# game mechanics, not security-sensitive, and a seedable RNG is required for
+# deterministic tests.
+dotnet_diagnostic.CA5394.severity = none
+
+# CA5404: ValidateIssuer/ValidateAudience false — intentional: internal service, no multi-tenant concerns
+dotnet_diagnostic.CA5404.severity = none
+
+# --------------------------------------------------------------------------
+# StyleCop rule overrides
+# --------------------------------------------------------------------------
+
+# SA0001: XML comment analysis disabled — no public API docs required
+dotnet_diagnostic.SA0001.severity = none
+
+# SA1101: Prefix local calls with 'this.' — conflicts with dotnet_style_qualification rules
+dotnet_diagnostic.SA1101.severity = none
+
+# SA1200: Using directives placement — file-scoped namespaces put them outside
+dotnet_diagnostic.SA1200.severity = none
+
+# SA1600/SA1601/SA1602/SA1633: Documentation headers — not required
+dotnet_diagnostic.SA1600.severity = none
+dotnet_diagnostic.SA1601.severity = none
+dotnet_diagnostic.SA1602.severity = none
+dotnet_diagnostic.SA1633.severity = none
+
+# SA1201/SA1204: member ordering by kind/static — relaxed so result types can sit
+# beside the logic that returns them and guard helpers read top-to-bottom.
+dotnet_diagnostic.SA1201.severity = none
+dotnet_diagnostic.SA1204.severity = none
+
+# IDE0046: "use conditional expression for return" — prefer readable guard
+# clauses over deeply nested ternaries in validation.
+dotnet_diagnostic.IDE0046.severity = none
+
+[*.{csproj,props,targets}]
+indent_size = 2
+
+[*.{json,yaml,yml}]
+indent_size = 2
+
+# EF Core generates migration files — exclude from all linting
+[Migrations/*.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none

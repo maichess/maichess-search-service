@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <!-- PublishAot removed: Grpc.Net.Client is incompatible with NativeAOT -->
+
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisMode>All</AnalysisMode>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Remove="MaichessSearchService.Tests/**" />
+        <EmbeddedResource Remove="MaichessSearchService.Tests/**" />
+        <None Remove="MaichessSearchService.Tests/**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>MaichessSearchService.Tests</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>DynamicProxyGenAssembly2</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DotNetEnv" Version="3.1.1" />
+        <PackageReference Include="Confluent.Kafka" Version="2.6.1" />
+        <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
+        <PackageReference Include="Maichess.PlatformProtos" Version="0.4.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.15.1-beta.1" />
+        <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="All" />
+    </ItemGroup>
+
+</Project>

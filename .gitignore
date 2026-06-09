@@ -1,0 +1,10 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+.idea
+.env
+Load-Env.ps1
+.env_prod
+MaichessSearchService.Tests/coverage.json
