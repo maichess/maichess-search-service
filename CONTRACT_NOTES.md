@@ -1,6 +1,6 @@
 # Contract Notes — maichess-search-service
 
-Implements `feature-prompts/13` (Caching Stage 5). See
+Implements `maichess-knowledge-base/tasks/implemented/13` (Caching Stage 5). See
 [search-elasticsearch.md](../../maichess-knowledge-base/search-elasticsearch.md) and
 [change-data-capture.md](../../maichess-knowledge-base/change-data-capture.md).
 

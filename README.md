@@ -1,7 +1,7 @@
 # maichess-search-service
 
 Search over a derived **Elasticsearch** read model: games-library search, Past Matches
-facets, and FEN **position search**. Implements `feature-prompts/13` (Caching Stage 5).
+facets, and FEN **position search**. Implements `maichess-knowledge-base/tasks/implemented/13` (Caching Stage 5).
 
 ES is **never a source of truth** — Mongo (behind match-db's DatabaseService) stays
 authoritative and every index is rebuildable from it. The index is fed only from CDC
