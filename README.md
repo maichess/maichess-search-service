@@ -75,4 +75,4 @@ dotnet tool restore
 cd MaichessSearchService.Tests && dotnet stryker
 ```
 
-Stryker mirrors the coverage exclusions (`stryker-config.json`).
+Stryker mirrors the coverage exclusions (`stryker-config.json`)
