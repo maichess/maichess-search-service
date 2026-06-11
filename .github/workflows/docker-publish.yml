@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
     tags:
       - "v*"
 
@@ -31,7 +32,8 @@ jobs:
         with:
           images: ghcr.io/maichess/maichess-search-service
           tags: |
-            type=ref,event=branch
+            type=ref,event=branch,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/dev' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-,format=short
