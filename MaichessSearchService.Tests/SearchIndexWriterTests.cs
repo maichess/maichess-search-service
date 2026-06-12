@@ -18,7 +18,7 @@ public class SearchIndexWriterTests
     [Fact]
     public async Task UpsertGameIndexesSummaryAndPositions()
     {
-        GameDoc game = new("G1", "u1", "pgn", null, "w", "b", "1-0", "Open", "C20", "text", 10);
+        GameDoc game = new("G1", "u1", "pgn", null, "w", "b", "w b", "1-0", "Open", "C20", "text", 10);
         PositionDoc pos = new("game", "G1", ["u1"], 0, "k w", "fen", "w", "b");
 
         await writer.ApplyAsync(new IndexCommand.UpsertGame(game, [pos]), CancellationToken.None);
@@ -31,7 +31,7 @@ public class SearchIndexWriterTests
     [Fact]
     public async Task UpsertMatchIndexesSummaryAndPositions()
     {
-        MatchDoc match = new("M1", ["u1"], "u1", "bot", "white_won", "native", "", 3, 99);
+        MatchDoc match = new("M1", ["u1"], "u1", "bot", "u1 bot", "white_won", "native", "", 3, 99);
         PositionDoc pos = new("match", "M1", ["u1"], 1, "k b", "fen", "u1", "bot");
 
         await writer.ApplyAsync(new IndexCommand.UpsertMatch(match, [pos]), CancellationToken.None);

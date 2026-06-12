@@ -48,6 +48,7 @@ internal static class SearchEndpoints
         ClaimsPrincipal principal,
         SearchService service,
         CancellationToken ct,
+        [FromQuery] string? q = null,
         [FromQuery] string? opponent = null,
         [FromQuery] string? result = null,
         [FromQuery] string? source = null,
@@ -63,7 +64,7 @@ internal static class SearchEndpoints
         }
 
         SearchPage<MatchResult> results = await service.SearchMatchesAsync(
-            userId, opponent, result, source, externalProvider, fromMs, toMs, page, pageSize, ct);
+            userId, q, opponent, result, source, externalProvider, fromMs, toMs, page, pageSize, ct);
         return Results.Ok(results);
     }
 

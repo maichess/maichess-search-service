@@ -22,8 +22,8 @@ public class CdcDocumentMapperTests
         ["fens"] = new[] { "8/8/8/8/8/8/8/8 b - - 1 1", string.Empty },
         ["pgn"] = "[Event \"Test\"]",
         ["result"] = "1-0",
-        ["white"] = new Dictionary<string, object?> { ["name"] = "Alice" },
-        ["black"] = new Dictionary<string, object?> { ["name"] = "Bob" },
+        ["white"] = new Dictionary<string, object?> { ["name"] = "Alice", ["user_id"] = "uid-w" },
+        ["black"] = new Dictionary<string, object?> { ["name"] = "Bob", ["bot_id"] = "bot-b" },
         ["tags"] = new Dictionary<string, object?>
         {
             ["Opening"] = "Sicilian",
@@ -75,6 +75,67 @@ public class CdcDocumentMapperTests
         Assert.Equal(
             DateTimeOffset.Parse("2026-06-09T12:00:00.0000000+00:00", CultureInfo.InvariantCulture).ToUnixTimeMilliseconds(),
             cmd.Game.CreatedAtMs);
+    }
+
+    [Fact]
+    public void GameNamesBlobIncludesEveryPlayerIdentifier()
+    {
+        IndexCommand.UpsertGame cmd = MapGame(FullGame());
+
+        Assert.Contains("Alice", cmd.Game.Names, StringComparison.Ordinal);
+        Assert.Contains("uid-w", cmd.Game.Names, StringComparison.Ordinal);
+        Assert.Contains("Bob", cmd.Game.Names, StringComparison.Ordinal);
+        Assert.Contains("bot-b", cmd.Game.Names, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GameDisplayPrefersUsernameThenBotName()
+    {
+        Dictionary<string, object?> doc = FullGame();
+        doc["white"] = new Dictionary<string, object?> { ["user_id"] = "uid", ["username"] = "Magnus" };
+        doc["black"] = new Dictionary<string, object?> { ["bot_id"] = "bot-sf", ["name"] = "Stockfish" };
+
+        IndexCommand.UpsertGame cmd = MapGame(doc);
+
+        Assert.Equal("Magnus", cmd.Game.White);
+        Assert.Equal("Stockfish", cmd.Game.Black);
+        Assert.Contains("Magnus", cmd.Game.Names, StringComparison.Ordinal);
+        Assert.Contains("Stockfish", cmd.Game.Names, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GameDisplayFallsBackToBotIdThenUserId()
+    {
+        Dictionary<string, object?> doc = FullGame();
+        doc["white"] = new Dictionary<string, object?> { ["bot_id"] = "bot-only" };
+        doc["black"] = new Dictionary<string, object?> { ["user_id"] = "uid-only" };
+
+        IndexCommand.UpsertGame cmd = MapGame(doc);
+
+        Assert.Equal("bot-only", cmd.Game.White);
+        Assert.Equal("uid-only", cmd.Game.Black);
+    }
+
+    [Fact]
+    public void GameDisplayEmptyWhenDictHasNoKnownIdentifier()
+    {
+        Dictionary<string, object?> doc = FullGame();
+        doc["white"] = new Dictionary<string, object?> { ["elo"] = "1500", ["empty"] = string.Empty, ["rank"] = 3 };
+
+        IndexCommand.UpsertGame cmd = MapGame(doc);
+
+        Assert.Equal(string.Empty, cmd.Game.White);
+        Assert.Contains("1500", cmd.Game.Names, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GameNamesAreDeduplicated()
+    {
+        Dictionary<string, object?> doc = FullGame();
+        doc["white"] = new Dictionary<string, object?> { ["username"] = "Dup" };
+        doc["black"] = new Dictionary<string, object?> { ["username"] = "Dup" };
+
+        Assert.Equal("Dup", MapGame(doc).Game.Names);
     }
 
     [Fact]
@@ -135,6 +196,7 @@ public class CdcDocumentMapperTests
 
         Assert.Equal(string.Empty, cmd.Game.White);
         Assert.Equal(string.Empty, cmd.Game.Black);
+        Assert.Equal(string.Empty, cmd.Game.Names);
         Assert.Equal(string.Empty, cmd.Game.Opening);
         Assert.Equal(string.Empty, cmd.Game.Eco);
         Assert.Empty(cmd.Positions);
@@ -206,6 +268,17 @@ public class CdcDocumentMapperTests
         Assert.Equal(1234567890123L, cmd.Match.FinishedAtMs);
         Assert.Equal(3, cmd.Positions.Count);
         Assert.Equal("match", cmd.Positions[0].Kind);
+    }
+
+    [Fact]
+    public void MatchNamesBlobIncludesPlayerAndBotIds()
+    {
+        IndexCommand.UpsertMatch cmd = MapMatch(FullMatch());
+
+        // match-db has only ids: white_user_id (Guid1) and black_bot_id (bot-sf) are present;
+        // empty/null id slots are dropped. No resolved usernames are available here.
+        Assert.Contains(Guid1, cmd.Match.Names, StringComparison.Ordinal);
+        Assert.Contains("bot-sf", cmd.Match.Names, StringComparison.Ordinal);
     }
 
     [Fact]

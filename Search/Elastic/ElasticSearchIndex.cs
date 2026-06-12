@@ -28,7 +28,12 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
         PropertyNamingPolicy = null,
     };
 
-    private static readonly string[] GameTextFields = ["text", "white", "black", "opening"];
+    // Free-text fields. `names` is the edge_ngram (partial-matching) field carrying every
+    // username/bot-name/id; `text` carries the PGN+headers blob; white/black/opening match
+    // whole tokens. multi_match ORs them so a full or partial name query hits `names`.
+    private static readonly string[] GameTextFields = ["text", "names", "white", "black", "opening"];
+
+    private static readonly string[] MatchTextFields = ["names", "white", "black"];
 
     public async Task EnsureIndexesAsync(CancellationToken ct)
     {
@@ -47,6 +52,7 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
             match_id = game.MatchId,
             white = game.White,
             black = game.Black,
+            names = game.Names,
             result = game.Result,
             opening = game.Opening,
             eco = game.Eco,
@@ -64,6 +70,7 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
             owner_ids = match.OwnerIds,
             white = match.White,
             black = match.Black,
+            names = match.Names,
             status = match.Status,
             source = match.Source,
             external_provider = match.ExternalProvider,
@@ -128,7 +135,7 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
 
         if (query.Opponent is not null)
         {
-            filters.Add(ShouldMatch(query.Opponent, "white", "black"));
+            filters.Add(MatchField("names", query.Opponent));
         }
 
         if (query.Opening is not null)
@@ -163,10 +170,16 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
     public async Task<SearchPage<MatchResult>> SearchMatchesAsync(MatchQuery query, CancellationToken ct)
     {
         List<object> filters = [Term("owner_ids", query.UserId)];
+        List<object> musts = [];
+
+        if (query.Text is not null)
+        {
+            musts.Add(new { multi_match = new { query = query.Text, fields = MatchTextFields } });
+        }
 
         if (query.Opponent is not null)
         {
-            filters.Add(ShouldMatch(query.Opponent, "white", "black"));
+            filters.Add(MatchField("names", query.Opponent));
         }
 
         AddTerm(filters, "status", query.Result);
@@ -174,7 +187,7 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
         AddTerm(filters, "external_provider", query.ExternalProvider);
         AddRange(filters, "finished_at_ms", query.FromMs, query.ToMs);
 
-        object body = SearchBody(filters, [], query.Page, query.PageSize, "finished_at_ms");
+        object body = SearchBody(filters, musts, query.Page, query.PageSize, "finished_at_ms");
         JsonElement hits = await RunSearchAsync(MatchesIndex, body, ct);
 
         List<MatchResult> results = [];
@@ -240,6 +253,9 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
 
     private static object Term(string field, string value) =>
         new { term = new Dictionary<string, object> { [field] = value } };
+
+    private static object MatchField(string field, string value) =>
+        new { match = new Dictionary<string, object> { [field] = value } };
 
     private static object ShouldMatch(string value, params string[] fields) =>
         new
@@ -359,6 +375,7 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
 
     private static object GamesMapping() => new
     {
+        settings = NameAnalysisSettings(),
         mappings = new
         {
             properties = new Dictionary<string, object>
@@ -369,6 +386,7 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
                 ["match_id"] = Keyword(),
                 ["white"] = TextWithKeyword(),
                 ["black"] = TextWithKeyword(),
+                ["names"] = NamesText(),
                 ["result"] = Keyword(),
                 ["opening"] = TextWithKeyword(),
                 ["eco"] = Keyword(),
@@ -380,6 +398,7 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
 
     private static object MatchesMapping() => new
     {
+        settings = NameAnalysisSettings(),
         mappings = new
         {
             properties = new Dictionary<string, object>
@@ -388,11 +407,42 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
                 ["owner_ids"] = Keyword(),
                 ["white"] = TextWithKeyword(),
                 ["black"] = TextWithKeyword(),
+                ["names"] = NamesText(),
                 ["status"] = Keyword(),
                 ["source"] = Keyword(),
                 ["external_provider"] = Keyword(),
                 ["move_count"] = IntType(),
                 ["finished_at_ms"] = LongType(),
+            },
+        },
+    };
+
+    // Partial-name matching: the `names` field is tokenised with an edge_ngram analyzer at
+    // index time (every 2..20-char prefix of each token) and a plain lowercase analyzer at
+    // search time (so the query term is matched whole against those prefixes). This gives
+    // prefix matching — "magn" finds "Magnus". Trade-off: edge_ngram (prefix) keeps the
+    // index modest and covers the dominant "type the start of a name" case; it does NOT
+    // match infixes ("nus" won't find "Magnus"). Full `ngram` (substring) would, but at a
+    // much larger index size, so prefix is the chosen size/recall balance (task 24).
+    private static object NameAnalysisSettings() => new
+    {
+        index = new Dictionary<string, object> { ["max_ngram_diff"] = 19 },
+        analysis = new
+        {
+            analyzer = new
+            {
+                name_index = new { type = "custom", tokenizer = "name_edge_ngram", filter = new[] { "lowercase" } },
+                name_search = new { type = "custom", tokenizer = "standard", filter = new[] { "lowercase" } },
+            },
+            tokenizer = new
+            {
+                name_edge_ngram = new
+                {
+                    type = "edge_ngram",
+                    min_gram = 2,
+                    max_gram = 20,
+                    token_chars = new[] { "letter", "digit" },
+                },
             },
         },
     };
@@ -420,6 +470,13 @@ internal sealed class ElasticSearchIndex(HttpClient http) : ISearchIndex
     private static object Keyword() => new { type = "keyword" };
 
     private static object Text() => new { type = "text" };
+
+    private static object NamesText() => new
+    {
+        type = "text",
+        analyzer = "name_index",
+        search_analyzer = "name_search",
+    };
 
     private static object TextWithKeyword() => new
     {

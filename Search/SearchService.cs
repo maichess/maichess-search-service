@@ -41,6 +41,7 @@ internal sealed class SearchService(ISearchIndex index)
 
     internal Task<SearchPage<MatchResult>> SearchMatchesAsync(
         string userId,
+        string? text,
         string? opponent,
         string? result,
         string? source,
@@ -54,6 +55,7 @@ internal sealed class SearchService(ISearchIndex index)
         (int p, int ps) = NormalisePaging(page, pageSize);
         MatchQuery query = new(
             UserId: Canonical.UserId(userId),
+            Text: Blank(text),
             Opponent: Blank(opponent),
             Result: Blank(result),
             Source: Blank(source),

@@ -79,16 +79,26 @@ public class SearchServiceTests
     public async Task MatchesScopesAndForwardsFacets()
     {
         await service.SearchMatchesAsync(
-            Guid1, "Hikaru", "white_won", "external", "lichess", 1, 2, 1, 20, CancellationToken.None);
+            Guid1, " tal ", "Hikaru", "white_won", "external", "lichess", 1, 2, 1, 20, CancellationToken.None);
 
         MatchQuery q = Assert.IsType<MatchQuery>(index.LastMatchQuery);
         Assert.Equal(Canon1, q.UserId);
+        Assert.Equal("tal", q.Text);
         Assert.Equal("Hikaru", q.Opponent);
         Assert.Equal("white_won", q.Result);
         Assert.Equal("external", q.Source);
         Assert.Equal("lichess", q.ExternalProvider);
         Assert.Equal(1, q.FromMs);
         Assert.Equal(2, q.ToMs);
+    }
+
+    [Fact]
+    public async Task MatchesBlanksWhitespaceTextToNull()
+    {
+        await service.SearchMatchesAsync(
+            "u", "   ", null, null, null, null, null, null, 1, 20, CancellationToken.None);
+
+        Assert.Null(index.LastMatchQuery!.Text);
     }
 
     [Fact]

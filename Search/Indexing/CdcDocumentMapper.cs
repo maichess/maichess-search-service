@@ -52,8 +52,15 @@ internal static class CdcDocumentMapper
     internal static IndexCommand.UpsertGame ProjectGame(JsonElement game, string id)
     {
         string userId = Canonical.UserId(GetString(game, "user_id"));
-        string white = DictName(game, "white");
-        string black = DictName(game, "black");
+        JsonElement? whiteDict = GetObject(game, "white");
+        JsonElement? blackDict = GetObject(game, "black");
+        string white = PlayerDisplay(whiteDict);
+        string black = PlayerDisplay(blackDict);
+
+        // Every identifier the analysis service denormalised for both players (resolved
+        // username, bot display name, user id, bot id) becomes searchable. Indexed into the
+        // edge_ngram `names` field so a full or partial username/bot-name query matches.
+        string names = JoinNames(DictValues(whiteDict), DictValues(blackDict));
         JsonElement? tags = GetObject(game, "tags");
         string opening = TagValue(tags, "Opening", "opening");
         string eco = TagValue(tags, "ECO", "eco");
@@ -67,6 +74,7 @@ internal static class CdcDocumentMapper
             MatchId: matchId.Length == 0 ? null : matchId,
             White: white,
             Black: black,
+            Names: names,
             Result: GetString(game, "result"),
             Opening: opening,
             Eco: eco,
@@ -106,11 +114,24 @@ internal static class CdcDocumentMapper
         string black = PlayerLabel(match, "black");
         string source = GetString(match, "source");
 
+        // match-db stores only ids, so the searchable name blob is limited to the player
+        // user-ids and bot-ids; resolved usernames/bot display names are not available here
+        // (see MatchDoc / CONTRACT_NOTES.md). Still lets a match be found by id or bot-id.
+        string names = JoinNames(
+            [
+                GetString(match, "white_user_id"),
+                GetString(match, "white_bot_id"),
+                GetString(match, "black_user_id"),
+                GetString(match, "black_bot_id"),
+            ],
+            []);
+
         MatchDoc matchDoc = new(
             MatchId: id,
             OwnerIds: ownerIds,
             White: white,
             Black: black,
+            Names: names,
             Status: GetString(match, "status"),
             Source: source.Length == 0 ? "native" : source,
             ExternalProvider: GetString(match, "external_provider"),
@@ -325,8 +346,66 @@ internal static class CdcDocumentMapper
         return bot.Length > 0 ? bot : GetString(match, $"{side}_user_id");
     }
 
-    private static string DictName(JsonElement doc, string name) =>
-        GetObject(doc, name) is { } obj ? GetString(obj, "name") : string.Empty;
+    // The display label for a games-library player: the resolved human username, else the
+    // bot display name, else an id. Mirrors the priority the analysis service writes.
+    private static string PlayerDisplay(JsonElement? dict)
+    {
+        if (dict is not { } d)
+        {
+            return string.Empty;
+        }
+
+        foreach (string key in new[] { "username", "name", "bot_id", "user_id" })
+        {
+            string value = GetString(d, key);
+            if (value.Length > 0)
+            {
+                return value;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    // All string values of a player dict (username, name, ids) — every token by which the
+    // player can be searched.
+    private static List<string> DictValues(JsonElement? dict)
+    {
+        List<string> values = [];
+        if (dict is { } d)
+        {
+            foreach (JsonProperty prop in d.EnumerateObject())
+            {
+                if (prop.Value.ValueKind != JsonValueKind.String)
+                {
+                    continue;
+                }
+
+                string value = prop.Value.GetString()!;
+                if (value.Length > 0)
+                {
+                    values.Add(value);
+                }
+            }
+        }
+
+        return values;
+    }
+
+    // Distinct, space-joined searchable tokens for both players.
+    private static string JoinNames(IReadOnlyList<string> white, IReadOnlyList<string> black)
+    {
+        List<string> tokens = [];
+        foreach (string token in white.Concat(black))
+        {
+            if (token.Length > 0 && !tokens.Contains(token))
+            {
+                tokens.Add(token);
+            }
+        }
+
+        return string.Join(' ', tokens);
+    }
 
     private static string TagValue(JsonElement? tags, params string[] names)
     {
