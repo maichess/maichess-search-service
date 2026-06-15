@@ -33,7 +33,7 @@
         <PackageReference Include="DotNetEnv" Version="3.1.1" />
         <PackageReference Include="Confluent.Kafka" Version="2.6.1" />
         <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
-        <PackageReference Include="Maichess.PlatformProtos" Version="0.13.0" />
+        <PackageReference Include="Maichess.PlatformProtos" Version="0.14.0" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
